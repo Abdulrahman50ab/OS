@@ -18,6 +18,8 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -50,10 +52,7 @@ public class ABSANOS {
     private static Random random = new Random();
     
     // Kernel Configuration
-    private static int maxProcesses = 50;
-    private static int maxMemory = 1024; // MB
     private static int timeQuantum = 4;
-    private static String schedulingAlgorithm = "Round Robin";
 
     public static void main(String[] args) {
         try {
@@ -70,109 +69,94 @@ public class ABSANOS {
         frame.setSize(1920, 1080);
         frame.setLocationRelativeTo(null);
 
-     JPanel mainPanel = new JPanel(new BorderLayout()) {
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g.create();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        JPanel mainPanel = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        int w = getWidth();
-        int h = getHeight();
+                int w = getWidth();
+                int h = getHeight();
 
-        // TOP → DEEP PURPLE
-        // MIDDLE → MAGENTA / PINK
-        // BOTTOM → ORANGE / RED
+                Color top = new Color(60, 0, 120);
+                Color middle = new Color(120, 189, 255);
+                Color bottom = new Color(160, 80, 0);
 
-        Color top    = new Color(60, 0, 120);      // Deep Purple
-        Color middle = new Color(120, 189, 255);     // Vibrant Magenta
-        Color bottom = new Color(160, 80, 0);      // Hot Orange-Red
+                GradientPaint gp1 = new GradientPaint(0, 0, top, 0, h * 0.5f, middle);
+                GradientPaint gp2 = new GradientPaint(0, h * 0.5f, middle, 0, h, bottom);
 
-        GradientPaint gp1 = new GradientPaint(0, 0, top, 0, h * 0.5f, middle);
-        GradientPaint gp2 = new GradientPaint(0, h * 0.5f, middle, 0, h, bottom);
+                g2d.setPaint(gp1);
+                g2d.fillRect(0, 0, w, h / 2);
 
-        g2d.setPaint(gp1);
-        g2d.fillRect(0, 0, w, h / 2);
+                g2d.setPaint(gp2);
+                g2d.fillRect(0, h / 2, w, h / 2);
 
-        g2d.setPaint(gp2);
-        g2d.fillRect(0, h / 2, w, h / 2);
+                g2d.dispose();
+            }
+        };
+        mainPanel.setOpaque(false);
 
-        g2d.dispose();
-    }
-};
-mainPanel.setOpaque(false); // Zaroori hai!
+        // Title
+        JLabel title = new JLabel("ABSAN-OS", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Title Panel
-     // KILLER GRADIENT TITLE (ABSAN-OS)
-JLabel title = new JLabel("ABSAN-OS", SwingConstants.CENTER) {
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g.create();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int w = getWidth();
+                int h = getHeight();
 
-        int w = getWidth();
-        int h = getHeight();
+                Color start = new Color(100, 200, 20);
+                Color end = new Color(0, 120, 254);
 
-        // Gradient colors (same as background but brighter for glow)
-        Color start = new Color(100, 200, 20);   
-        Color end   = new Color(0, 120, 254);   // Pink
+                GradientPaint gp = new GradientPaint(0, 0, start, w, h, end);
+                g2d.setPaint(gp);
+                g2d.setFont(getFont());
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (w - fm.stringWidth(getText())) / 2;
+                int y = fm.getAscent() + (h - (fm.getAscent() + fm.getDescent())) / 2;
 
-        GradientPaint gp = new GradientPaint(0, 0, start, w, h, end);
-        g2d.setPaint(gp);
-        g2d.setFont(getFont());
-        FontMetrics fm = g2d.getFontMetrics();
-        int x = (w - fm.stringWidth(getText())) / 2;
-        int y = fm.getAscent() + (h - (fm.getAscent() + fm.getDescent())) / 2;
+                g2d.drawString(getText(), x, y);
+                g2d.dispose();
+            }
+        };
+        title.setFont(new Font("Montserrat", Font.BOLD, 110));
+        title.setBorder(new EmptyBorder(80, 0, 20, 0));
+        title.setOpaque(false);
 
-        g2d.drawString(getText(), x, y);
+        JLabel subtitle = new JLabel("Operating System Simulation", SwingConstants.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g.create();
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Optional: Add subtle glow (outline)
-        g2d.setColor(new Color(255, 255, 255, 80));
-        g2d.setStroke(new BasicStroke(3));
-        g2d.drawString(getText(), x, y);
+                int w = getWidth();
+                int h = getHeight();
 
-        g2d.dispose();
-    }
-};
-title.setFont(new Font("Montserrat", Font.BOLD, 110));  // PREMIUM FONT
-title.setBorder(new EmptyBorder(80, 0, 20, 0));
-title.setOpaque(false);
+                GradientPaint gp = new GradientPaint(0, 0, new Color(180, 220, 255),
+                        w, h, new Color(255, 180, 255));
+                g2d.setPaint(gp);
+                g2d.setFont(getFont());
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (w - fm.stringWidth(getText())) / 2;
+                int y = fm.getAscent() + (h - (fm.getAscent() + fm.getDescent())) / 2;
 
-// GRADIENT SUBTITLE
-JLabel subtitle = new JLabel("Operating System Simulation", SwingConstants.CENTER) {
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2d = (Graphics2D) g.create();
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-        int w = getWidth();
-        int h = getHeight();
-
-        GradientPaint gp = new GradientPaint(0, 0, new Color(180, 220, 255),
-                                            w, h, new Color(255, 180, 255));
-        g2d.setPaint(gp);
-        g2d.setFont(getFont());
-        FontMetrics fm = g2d.getFontMetrics();
-        int x = (w - fm.stringWidth(getText())) / 2;
-        int y = fm.getAscent() + (h - (fm.getAscent() + fm.getDescent())) / 2;
-
-        g2d.drawString(getText(), x, y);
-        g2d.dispose();
-    }
-};
-subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 26));
-subtitle.setOpaque(false);
+                g2d.drawString(getText(), x, y);
+                g2d.dispose();
+            }
+        };
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 26));
+        subtitle.setOpaque(false);
 
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
         titlePanel.add(title, BorderLayout.CENTER);
         titlePanel.add(subtitle, BorderLayout.SOUTH);
 
-        // Main menu buttons - Only 4 buttons
+        // Main menu buttons
         JPanel buttonPanel = new JPanel(new GridBagLayout());
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(40, 40, 100, 40));
@@ -182,10 +166,10 @@ subtitle.setOpaque(false);
         gbc.fill = GridBagConstraints.BOTH;
 
         String[][] buttons = {
-            {"Process Management", "🖥️", "Process"},
-            {"Memory Management", "💾", "Memory"},
-            {"I/O Management", "", "IO"},
-            {"Other Operations", "", "Other"}
+                {"Process Management", "🖥️", "Process"},
+                {"Memory Management", "💾", "Memory"},
+                {"I/O Management", "⚡", "IO"},
+                {"Other Operations", "⚙️", "Other"}
         };
 
         int col = 0;
@@ -193,15 +177,15 @@ subtitle.setOpaque(false);
             gbc.gridx = col++;
             gbc.gridy = 0;
             JButton button = createModernButton(btn[0], btn[1]);
-            
+
             String action = btn[2];
             button.addActionListener(e -> {
                 if (action.equals("Process")) {
                     openProcessManagement(frame);
                 } else {
                     JOptionPane.showMessageDialog(frame,
-                        btn[0] + " module is under development", "ABSAN-OS", 
-                        JOptionPane.INFORMATION_MESSAGE);
+                            btn[0] + " module is under development", "ABSAN-OS",
+                            JOptionPane.INFORMATION_MESSAGE);
                 }
             });
             buttonPanel.add(button, gbc);
@@ -209,7 +193,7 @@ subtitle.setOpaque(false);
 
         mainPanel.add(titlePanel, BorderLayout.NORTH);
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
-        
+
         frame.add(mainPanel);
         frame.setVisible(true);
     }
@@ -232,16 +216,16 @@ subtitle.setOpaque(false);
             public void paint(Graphics g, JComponent c) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                
+
                 Color bg = btn.getModel().isRollover() ? hover : base;
-                
+
                 g2.setColor(bg);
                 g2.fillRoundRect(0, 0, c.getWidth(), c.getHeight(), 20, 20);
-                
+
                 g2.setColor(new Color(0, 255, 255, 80));
                 g2.setStroke(new BasicStroke(2));
-                g2.drawRoundRect(2, 2, c.getWidth()-5, c.getHeight()-5, 18, 18);
-                
+                g2.drawRoundRect(2, 2, c.getWidth() - 5, c.getHeight() - 5, 18, 18);
+
                 super.paint(g2, c);
                 g2.dispose();
             }
@@ -277,30 +261,26 @@ subtitle.setOpaque(false);
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setBackground(new Color(30, 39, 46));
         leftPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 0, 2, new Color(72, 219, 251)),
-            new EmptyBorder(20, 15, 20, 15)
-        ));
+                BorderFactory.createMatteBorder(0, 0, 0, 2, new Color(72, 219, 251)),
+                new EmptyBorder(20, 15, 20, 15)));
 
         String[][] operations = {
-            {"Create Process", "➕"},
-            {"Destroy Process", "❌"},
-            {"Suspend Process", "⏸️"},
-            {"Resume Process", "▶️"},
-            {"Block Process", "🚫"},
-            {"Wakeup Process", "⏰"},
-            {"Dispatch Process", "🚀"},
-            {"Change Priority", "⚖️"},
-            {"IPC", "📡"},
-            {"View PCB", "📋"},
-            {"Configuration", "🔧"}
+                {"Create Process", "➕"},
+                {"Destroy Process", "❌"},
+                {"Suspend Process", "⏸️"},
+                {"Resume Process", "▶️"},
+                {"Block Process", "🚫"},
+                {"Wakeup Process", "⏰"},
+                {"PCB", "📋"},
+                {"Scheduling", "📊"}
         };
 
         for (String[] op : operations) {
             JButton btn = createOperationButton(op[0], op[1]);
             btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-            
+
             btn.addActionListener(e -> handleProcessOperation(op[0], frame, info));
-            
+
             leftPanel.add(btn);
             leftPanel.add(Box.createRigidArea(new Dimension(0, 8)));
         }
@@ -311,29 +291,28 @@ subtitle.setOpaque(false);
 
         // Center panel - Process Table
         processTableModel = new DefaultTableModel(
-            new String[]{"PID", "Name", "Status", "Priority", "Memory", "CPU Core", "Arrival", "Burst"}, 0) {
+                new String[]{"PID", "Name", "Status", "Priority", "Memory", "Arrival", "Burst"}, 0) {
             @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
         };
-        
+
         processTable = new JTable(processTableModel);
         processTable.setRowHeight(40);
         processTable.setFont(new Font("Consolas", Font.PLAIN, 13));
-        processTable.setBackground(new Color(35, 43, 53));
-        processTable.setForeground(Color.WHITE);
+        processTable.setBackground(new Color(30, 30, 30));  // Dark background
+        processTable.setForeground(Color.WHITE);            // White text
         processTable.setSelectionBackground(new Color(52, 152, 219));
         processTable.setSelectionForeground(Color.WHITE);
         processTable.setGridColor(new Color(60, 70, 80));
-        processTable.setShowGrid(true);
-        processTable.setShowHorizontalLines(true);
-        processTable.setShowVerticalLines(true);
+        
 
         JTableHeader tableHeader = processTable.getTableHeader();
         tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
         tableHeader.setOpaque(false);
         tableHeader.setBackground(new Color(41, 128, 185));
-        tableHeader.setForeground(Color.WHITE);            
-       
+        tableHeader.setForeground(Color.WHITE);
         tableHeader.setPreferredSize(new Dimension(100, 45));
 
         JScrollPane tableScroll = new JScrollPane(processTable);
@@ -361,15 +340,15 @@ subtitle.setOpaque(false);
         btn.setBackground(new Color(0, 0, 0));
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
-            new EmptyBorder(8, 12, 8, 12)
-        ));
+                BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
+                new EmptyBorder(8, 12, 8, 12)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
                 btn.setBackground(new Color(30, 30, 30));
             }
+
             public void mouseExited(MouseEvent e) {
                 btn.setBackground(Color.BLACK);
             }
@@ -398,27 +377,18 @@ subtitle.setOpaque(false);
             case "Wakeup Process":
                 wakeupProcess(info);
                 break;
-            case "Dispatch Process":
-                dispatchProcess(info);
-                break;
-            case "Change Priority":
-                changePriority(info);
-                break;
-            case "IPC":
-                openIPCDialog(frame);
-                break;
-            case "View PCB":
+            case "PCB":
                 showPCBDetails();
                 break;
-            case "Configuration":
-                openConfiguration(frame);
+            case "Scheduling":
+                openSchedulingWindow(frame);
                 break;
         }
     }
 
     private static void openCreateProcessDialog(JFrame parent, JLabel info) {
         JDialog dialog = new JDialog(parent, "Create New Process", true);
-        dialog.setSize(550, 600);
+        dialog.setSize(550, 550);
         dialog.setLocationRelativeTo(parent);
         dialog.getContentPane().setBackground(new Color(30, 39, 46));
 
@@ -439,7 +409,7 @@ subtitle.setOpaque(false);
         JTextField nameField = createStyledTextField("Process Name");
         JComboBox<String> priorityBox = new JComboBox<>(new String[]{"1 (Highest)", "2", "3", "4", "5 (Lowest)"});
         priorityBox.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        
+
         JTextField memoryField = createStyledTextField("Memory Required (MB)");
         JTextField burstField = createStyledTextField("Burst Time");
         JTextField arrivalField = createStyledTextField("Arrival Time");
@@ -474,15 +444,19 @@ subtitle.setOpaque(false);
                 processList.add(pcb);
 
                 refreshProcessTable(info);
-                JOptionPane.showMessageDialog(dialog, 
-                    "✓ Process Created Successfully!\nPID: " + pcb.pid, 
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(dialog,
+                        "✓ Process Created Successfully!\nPID: " + pcb.pid,
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();
 
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "❌ Please enter valid numbers for Memory, Burst Time, and Arrival Time!",
+                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, 
-                    "❌ Error: " + ex.getMessage(), 
-                    "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(dialog,
+                        "❌ Error: " + ex.getMessage(),
+                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -498,9 +472,8 @@ subtitle.setOpaque(false);
         field.setBackground(new Color(44, 62, 80));
         field.setCaretColor(Color.WHITE);
         field.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
-            new EmptyBorder(8, 10, 8, 10)
-        ));
+                BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
+                new EmptyBorder(8, 10, 8, 10)));
         return field;
     }
 
@@ -527,15 +500,13 @@ subtitle.setOpaque(false);
 
         for (ProcessControlBlock pcb : processList) {
             processTableModel.addRow(new Object[]{
-                pcb.pid,
-                pcb.processName,
-                pcb.state,
-                pcb.priority,
-                pcb.owner,
-                pcb.memoryRequirements + " MB",
-                pcb.cpuCore >= 0 ? pcb.cpuCore : "-",
-                pcb.arrivalTime,
-                pcb.burstTime
+                    pcb.pid,
+                    pcb.processName,
+                    pcb.state,
+                    pcb.priority,
+                    pcb.memoryRequirements + " MB",
+                    pcb.arrivalTime,
+                    pcb.burstTime
             });
 
             if (pcb.state.equals("Running")) running++;
@@ -546,21 +517,21 @@ subtitle.setOpaque(false);
 
         if (info != null) {
             info.setText(String.format("Total: %d | Running: %d | Ready: %d | Blocked: %d | Suspended: %d",
-                processList.size(), running, ready, blocked, suspended));
+                    processList.size(), running, ready, blocked, suspended));
         }
     }
 
     private static void destroyProcess(JLabel info) {
         int row = processTable.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int pid = (int) processTableModel.getValueAt(row, 0);
         ProcessControlBlock toRemove = null;
-        
+
         for (ProcessControlBlock pcb : processList) {
             if (pcb.pid == pid) {
                 toRemove = pcb;
@@ -578,8 +549,8 @@ subtitle.setOpaque(false);
     private static void changeProcessState(String newState, JLabel info) {
         int row = processTable.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -588,12 +559,10 @@ subtitle.setOpaque(false);
             if (pcb.pid == pid) {
                 String oldState = pcb.state;
                 pcb.state = newState;
-                if (newState.equals("Blocked") || newState.equals("Suspended")) {
-                    pcb.cpuCore = -1;
-                }
+                pcb.cpuCore = -1;
                 refreshProcessTable(info);
-                JOptionPane.showMessageDialog(null, 
-                    "✓ Process " + pid + " state changed from " + oldState + " to " + newState);
+                JOptionPane.showMessageDialog(null,
+                        "✓ Process " + pid + " state changed from " + oldState + " to " + newState);
                 return;
             }
         }
@@ -602,8 +571,8 @@ subtitle.setOpaque(false);
     private static void resumeProcess(JLabel info) {
         int row = processTable.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -611,9 +580,9 @@ subtitle.setOpaque(false);
         for (ProcessControlBlock pcb : processList) {
             if (pcb.pid == pid) {
                 if (!pcb.state.equals("Suspended")) {
-                    JOptionPane.showMessageDialog(null, 
-                        "❌ Only Suspended processes can be resumed!", 
-                        "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null,
+                            "❌ Only Suspended processes can be resumed!",
+                            "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 pcb.state = "Ready";
@@ -627,8 +596,8 @@ subtitle.setOpaque(false);
     private static void wakeupProcess(JLabel info) {
         int row = processTable.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -636,9 +605,9 @@ subtitle.setOpaque(false);
         for (ProcessControlBlock pcb : processList) {
             if (pcb.pid == pid) {
                 if (!pcb.state.equals("Blocked")) {
-                    JOptionPane.showMessageDialog(null, 
-                        "❌ Only Blocked processes can be woken up!", 
-                        "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(null,
+                            "❌ Only Blocked processes can be woken up!",
+                            "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 pcb.state = "Ready";
@@ -649,182 +618,17 @@ subtitle.setOpaque(false);
         }
     }
 
-    private static void dispatchProcess(JLabel info) {
-        int row = processTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int pid = (int) processTableModel.getValueAt(row, 0);
-        ProcessControlBlock selectedPcb = null;
-        
-        for (ProcessControlBlock pcb : processList) {
-            if (pcb.pid == pid) {
-                selectedPcb = pcb;
-                break;
-            }
-        }
-
-        if (selectedPcb != null) {
-            if (!selectedPcb.state.equals("Ready")) {
-                JOptionPane.showMessageDialog(null, 
-                    "❌ Only Ready processes can be dispatched!", 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            // Set all currently running processes to Ready
-            for (ProcessControlBlock pcb : processList) {
-                if (pcb.state.equals("Running")) {
-                    pcb.state = "Ready";
-                    pcb.cpuCore = -1;
-                }
-            }
-
-            // Dispatch selected process
-            selectedPcb.state = "Running";
-            selectedPcb.cpuCore = random.nextInt(4); // Assign CPU core 0-3
-            
-            refreshProcessTable(info);
-            JOptionPane.showMessageDialog(null, 
-                "🚀 Process " + pid + " dispatched to CPU Core " + selectedPcb.cpuCore + "!");
-        }
-    }
-
-    private static void changePriority(JLabel info) {
-        int row = processTable.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        String[] priorities = {"1 (Highest)", "2", "3", "4", "5 (Lowest)"};
-        String selected = (String) JOptionPane.showInputDialog(null, 
-            "Select new priority:", "Change Priority",
-            JOptionPane.QUESTION_MESSAGE, null, priorities, priorities[2]);
-
-        if (selected != null) {
-            int newPriority = Integer.parseInt(selected.substring(0, 1));
-            int pid = (int) processTableModel.getValueAt(row, 0);
-            
-            for (ProcessControlBlock pcb : processList) {
-                if (pcb.pid == pid) {
-                    int oldPriority = pcb.priority;
-                    pcb.priority = newPriority;
-                    refreshProcessTable(info);
-                    JOptionPane.showMessageDialog(null, 
-                        "✓ Process " + pid + " priority changed from " + oldPriority + " to " + newPriority);
-                    return;
-                }
-            }
-        }
-    }
-
-    private static void openIPCDialog(JFrame parent) {
-        if (processList.size() < 2) {
-            JOptionPane.showMessageDialog(parent, 
-                "❌ Need at least 2 processes for IPC!", 
-                "Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        JDialog dialog = new JDialog(parent, "Inter-Process Communication", true);
-        dialog.setSize(650, 480);
-        dialog.setLocationRelativeTo(parent);
-        dialog.getContentPane().setBackground(new Color(30, 39, 46));
-
-        JPanel main = new JPanel();
-        main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
-        main.setBorder(new EmptyBorder(25, 35, 25, 35));
-        main.setOpaque(false);
-
-        JLabel title = new JLabel("📡 Inter-Process Communication");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        title.setForeground(new Color(72, 219, 251));
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        JComboBox<String> senderBox = new JComboBox<>();
-        JComboBox<String> receiverBox = new JComboBox<>();
-        JComboBox<String> methodBox = new JComboBox<>(new String[]{
-            "Message Passing", "Shared Memory", "Pipe", "Socket"
-        });
-
-        for (ProcessControlBlock pcb : processList) {
-            String item = "PID " + pcb.pid + " - " + pcb.processName;
-            senderBox.addItem(item);
-            receiverBox.addItem(item);
-        }
-
-        JTextArea messageArea = new JTextArea(4, 30);
-        messageArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        messageArea.setBackground(new Color(44, 62, 80));
-        messageArea.setForeground(Color.WHITE);
-        messageArea.setCaretColor(Color.WHITE);
-        messageArea.setBorder(new EmptyBorder(8, 8, 8, 8));
-        JScrollPane scroll = new JScrollPane(messageArea);
-
-        main.add(title);
-        main.add(Box.createRigidArea(new Dimension(0, 25)));
-        addFormRow(main, "Sender:", senderBox);
-        addFormRow(main, "Receiver:", receiverBox);
-        addFormRow(main, "Method:", methodBox);
-        
-        JLabel msgLabel = new JLabel("Message:");
-        msgLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        msgLabel.setForeground(Color.WHITE);
-        main.add(msgLabel);
-        main.add(Box.createRigidArea(new Dimension(0, 8)));
-        main.add(scroll);
-
-        main.add(Box.createRigidArea(new Dimension(0, 18)));
-
-        JButton sendBtn = new JButton("📨 Send Message");
-        styleActionButton(sendBtn, new Color(41, 128, 185));
-        sendBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        sendBtn.addActionListener(e -> {
-            String message = messageArea.getText().trim();
-            if (message.isEmpty()) {
-                JOptionPane.showMessageDialog(dialog, "❌ Please enter a message!", 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            if (senderBox.getSelectedIndex() == receiverBox.getSelectedIndex()) {
-                JOptionPane.showMessageDialog(dialog, 
-                    "❌ Sender and Receiver must be different!", 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-
-            String method = (String) methodBox.getSelectedItem();
-            JOptionPane.showMessageDialog(dialog, 
-                "✓ Message sent via " + method + "!\n" +
-                "From: " + senderBox.getSelectedItem() + "\n" +
-                "To: " + receiverBox.getSelectedItem(), 
-                "Success", JOptionPane.INFORMATION_MESSAGE);
-            dialog.dispose();
-        });
-
-        main.add(sendBtn);
-        dialog.add(main);
-        dialog.setVisible(true);
-    }
-
     private static void showPCBDetails() {
         int row = processTable.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!", 
-                "Warning", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int pid = (int) processTableModel.getValueAt(row, 0);
         ProcessControlBlock pcb = null;
-        
+
         for (ProcessControlBlock p : processList) {
             if (p.pid == pid) {
                 pcb = p;
@@ -842,13 +646,12 @@ subtitle.setOpaque(false);
             details.append("Current State: ").append(pcb.state).append("\n");
             details.append("Owner: ").append(pcb.owner).append("\n");
             details.append("Priority: ").append(pcb.priority).append("\n");
-            details.append("Parent PID: ").append(pcb.parentPID != null ? pcb.parentPID : "None (Root Process)").append("\n");
-            details.append("Child Processes: ").append(pcb.childProcesses.isEmpty() ? "None" : pcb.childProcesses.toString()).append("\n");
             details.append("Memory Requirements: ").append(pcb.memoryRequirements).append(" MB\n");
             details.append("Allocated Memory: ").append(pcb.allocatedMemory).append("\n");
             details.append("CPU Core: ").append(pcb.cpuCore >= 0 ? pcb.cpuCore : "Not Assigned").append("\n");
             details.append("Arrival Time: ").append(pcb.arrivalTime).append("\n");
             details.append("Burst Time: ").append(pcb.burstTime).append("\n");
+            details.append("Remaining Time: ").append(pcb.remainingTime).append("\n");
             details.append("Register Save Area: ").append(pcb.registerSaveArea).append("\n");
             details.append("I/O State: ").append(pcb.ioState).append("\n");
 
@@ -862,15 +665,29 @@ subtitle.setOpaque(false);
             JScrollPane scroll = new JScrollPane(textArea);
             scroll.setPreferredSize(new Dimension(520, 420));
 
-            JOptionPane.showMessageDialog(null, scroll, 
-                "📋 PCB Details - Process " + pid, JOptionPane.PLAIN_MESSAGE);
+            JOptionPane.showMessageDialog(null, scroll,
+                    "📋 PCB Details - Process " + pid, JOptionPane.PLAIN_MESSAGE);
         }
     }
 
-    // ==================== CONFIGURATION ====================
-    private static void openConfiguration(JFrame parent) {
-        JDialog dialog = new JDialog(parent, "Kernel Configuration", true);
-        dialog.setSize(650, 550);
+    // ==================== SCHEDULING ====================
+    private static void openSchedulingWindow(JFrame parent) {
+        List<ProcessControlBlock> readyProcesses = new ArrayList<>();
+        for (ProcessControlBlock pcb : processList) {
+            if (pcb.state.equals("Ready")) {
+                readyProcesses.add(pcb);
+            }
+        }
+
+        if (readyProcesses.isEmpty()) {
+            JOptionPane.showMessageDialog(parent,
+                    "❌ No Ready processes available for scheduling!",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        JDialog dialog = new JDialog(parent, "CPU Scheduling Algorithms", true);
+        dialog.setSize(700, 600);
         dialog.setLocationRelativeTo(parent);
         dialog.getContentPane().setBackground(new Color(30, 39, 46));
 
@@ -879,91 +696,265 @@ subtitle.setOpaque(false);
         main.setBorder(new EmptyBorder(25, 35, 25, 35));
         main.setOpaque(false);
 
-        JLabel title = new JLabel("🔧 KERNEL CONFIGURATION");
+        JLabel title = new JLabel(" Select Scheduling Algorithm");
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(new Color(72, 219, 251));
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         main.add(title);
-        main.add(Box.createRigidArea(new Dimension(0, 25)));
+        main.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        JTextField maxProcField = createStyledTextField(String.valueOf(maxProcesses));
-        JTextField maxMemField = createStyledTextField(String.valueOf(maxMemory));
-        JTextField quantumField = createStyledTextField(String.valueOf(timeQuantum));
-        
-        JComboBox<String> schedBox = new JComboBox<>(new String[]{
-            "Round Robin", "FCFS", "SJF", "Priority Scheduling", "Multilevel Queue"
-        });
-        schedBox.setSelectedItem(schedulingAlgorithm);
-        schedBox.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        String[] algorithms = {"Round Robin", "FCFS", "SJF", "Priority Scheduling"};
 
-        addFormRow(main, "Max Processes:", maxProcField);
-        addFormRow(main, "Max Memory (MB):", maxMemField);
-        addFormRow(main, "Time Quantum:", quantumField);
-        addFormRow(main, "Scheduling:", schedBox);
+        for (String algo : algorithms) {
+            JButton btn = new JButton(algo);
+            btn.setPreferredSize(new Dimension(400, 60));
+            btn.setMaximumSize(new Dimension(400, 60));
+            btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+            btn.setContentAreaFilled(false);
+            btn.setOpaque(true);
+            styleActionButton(btn, new Color(41, 128, 185));
 
-        main.add(Box.createRigidArea(new Dimension(0, 25)));
-
-        JButton saveBtn = new JButton(" Save Configuration");
-        saveBtn.setContentAreaFilled(false);
-        saveBtn.setOpaque(true);
-        styleActionButton(saveBtn, new Color(39, 174, 96));
-        saveBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        saveBtn.addActionListener(e -> {
-            try {
-                maxProcesses = Integer.parseInt(maxProcField.getText().trim());
-                maxMemory = Integer.parseInt(maxMemField.getText().trim());
-                timeQuantum = Integer.parseInt(quantumField.getText().trim());
-                schedulingAlgorithm = (String) schedBox.getSelectedItem();
-
-                JOptionPane.showMessageDialog(dialog, 
-                    "✓ Configuration saved successfully!", 
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
+            btn.addActionListener(e -> {
                 dialog.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, 
-                    "❌ Invalid input! Please enter valid numbers.", 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+                showSchedulingResult(parent, algo, readyProcesses);
+            });
 
-        main.add(saveBtn);
+            main.add(btn);
+            main.add(Box.createRigidArea(new Dimension(0, 15)));
+        }
+
         dialog.add(main);
         dialog.setVisible(true);
     }
 
+    private static void showSchedulingResult(JFrame parent, String algorithm, List<ProcessControlBlock> readyProcesses) {
+        JFrame frame = new JFrame("ABSAN-OS - " + algorithm);
+        frame.setSize(1200, 700);
+        frame.setLocationRelativeTo(parent);
+        frame.getContentPane().setBackground(new Color(20, 25, 35));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(new Color(52, 152, 219));
+        header.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel("📊 " + algorithm.toUpperCase());
+        title.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        title.setForeground(Color.WHITE);
+        header.add(title, BorderLayout.CENTER);
+
+        // Create result table
+        DefaultTableModel scheduleModel = new DefaultTableModel(
+                new String[]{"PID", "Name", "Arrival", "Burst", "Waiting Time", "Turnaround Time", "Completion Time"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false;
+            }
+        };
+
+        List<ScheduleResult> results = new ArrayList<>();
+
+        switch (algorithm) {
+            case "FCFS":
+                results = scheduleFCFS(new ArrayList<>(readyProcesses));
+                break;
+            case "SJF":
+                results = scheduleSJF(new ArrayList<>(readyProcesses));
+                break;
+            case "Priority Scheduling":
+                results = schedulePriority(new ArrayList<>(readyProcesses));
+                break;
+            case "Round Robin":
+                results = scheduleRoundRobin(new ArrayList<>(readyProcesses));
+                break;
+        }
+
+        double totalWaiting = 0;
+        double totalTurnaround = 0;
+
+        for (ScheduleResult result : results) {
+            scheduleModel.addRow(new Object[]{
+                    result.pid,
+                    result.name,
+                    result.arrival,
+                    result.burst,
+                    result.waitingTime,
+                    result.turnaroundTime,
+                    result.completionTime
+            });
+            totalWaiting += result.waitingTime;
+            totalTurnaround += result.turnaroundTime;
+        }
+
+        JTable scheduleTable = new JTable(scheduleModel);
+        scheduleTable.setRowHeight(40);
+        scheduleTable.setFont(new Font("Consolas", Font.PLAIN, 14));
+        scheduleTable.setBackground(new Color(35, 43, 53));
+        scheduleTable.setForeground(Color.WHITE);
+        scheduleTable.setGridColor(new Color(60, 70, 80));
+
+        JTableHeader tableHeader = scheduleTable.getTableHeader();
+        tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        tableHeader.setOpaque(false);
+        tableHeader.setBackground(new Color(52, 152, 219));
+        tableHeader.setForeground(Color.WHITE);
+        tableHeader.setPreferredSize(new Dimension(100, 45));
+
+        JScrollPane tableScroll = new JScrollPane(scheduleTable);
+        tableScroll.setBorder(BorderFactory.createLineBorder(new Color(72, 219, 251), 2));
+
+        // Statistics Panel
+        JPanel statsPanel = new JPanel();
+        statsPanel.setBackground(new Color(30, 39, 46));
+        statsPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        double avgWaiting = totalWaiting / results.size();
+        double avgTurnaround = totalTurnaround / results.size();
+
+        JLabel stats = new JLabel(String.format(
+                "<html><div style='text-align: center;'>" +
+                        "<h2 style='color: #48DBFb;'>Performance Metrics</h2>" +
+                        "<p style='color: white; font-size: 16px;'>Average Waiting Time: <b>%.2f</b></p>" +
+                        "<p style='color: white; font-size: 16px;'>Average Turnaround Time: <b>%.2f</b></p>" +
+                        "</div></html>",
+                avgWaiting, avgTurnaround));
+        stats.setHorizontalAlignment(SwingConstants.CENTER);
+        statsPanel.add(stats);
+
+        frame.setLayout(new BorderLayout(10, 10));
+        frame.add(header, BorderLayout.NORTH);
+        frame.add(tableScroll, BorderLayout.CENTER);
+        frame.add(statsPanel, BorderLayout.SOUTH);
+
+        frame.setVisible(true);
+    }
+
+    // FCFS Scheduling
+    private static List<ScheduleResult> scheduleFCFS(List<ProcessControlBlock> processes) {
+        Collections.sort(processes, Comparator.comparingInt(p -> p.arrivalTime));
+        List<ScheduleResult> results = new ArrayList<>();
+        int currentTime = 0;
+
+        for (ProcessControlBlock pcb : processes) {
+            if (currentTime < pcb.arrivalTime) {
+                currentTime = pcb.arrivalTime;
+            }
+            int completionTime = currentTime + pcb.burstTime;
+            int turnaroundTime = completionTime - pcb.arrivalTime;
+            int waitingTime = turnaroundTime - pcb.burstTime;
+
+            results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
+                    pcb.burstTime, waitingTime, turnaroundTime, completionTime));
+            currentTime = completionTime;
+        }
+        return results;
+    }
+
+    // SJF Scheduling
+    private static List<ScheduleResult> scheduleSJF(List<ProcessControlBlock> processes) {
+        Collections.sort(processes, Comparator.comparingInt(p -> p.burstTime));
+        List<ScheduleResult> results = new ArrayList<>();
+        int currentTime = 0;
+
+        for (ProcessControlBlock pcb : processes) {
+            if (currentTime < pcb.arrivalTime) {
+                currentTime = pcb.arrivalTime;
+            }
+            int completionTime = currentTime + pcb.burstTime;
+            int turnaroundTime = completionTime - pcb.arrivalTime;
+            int waitingTime = turnaroundTime - pcb.burstTime;
+
+            results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
+                    pcb.burstTime, waitingTime, turnaroundTime, completionTime));
+            currentTime = completionTime;
+        }
+        return results;
+    }
+
+    // Priority Scheduling
+    private static List<ScheduleResult> schedulePriority(List<ProcessControlBlock> processes) {
+        Collections.sort(processes, Comparator.comparingInt(p -> p.priority));
+        List<ScheduleResult> results = new ArrayList<>();
+        int currentTime = 0;
+
+        for (ProcessControlBlock pcb : processes) {
+            if (currentTime < pcb.arrivalTime) {
+                currentTime = pcb.arrivalTime;
+            }
+            int completionTime = currentTime + pcb.burstTime;
+            int turnaroundTime = completionTime - pcb.arrivalTime;
+            int waitingTime = turnaroundTime - pcb.burstTime;
+
+            results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
+                    pcb.burstTime, waitingTime, turnaroundTime, completionTime));
+            currentTime = completionTime;
+        }
+        return results;
+    }
+
+    // Round Robin Scheduling
+    private static List<ScheduleResult> scheduleRoundRobin(List<ProcessControlBlock> processes) {
+        List<ScheduleResult> results = new ArrayList<>();
+        List<ProcessControlBlock> queue = new ArrayList<>(processes);
+        int currentTime = 0;
+
+        for (ProcessControlBlock pcb : queue) {
+            pcb.remainingTime = pcb.burstTime;
+        }
+
+        while (!queue.isEmpty()) {
+            ProcessControlBlock pcb = queue.remove(0);
+
+            if (currentTime < pcb.arrivalTime) {
+                currentTime = pcb.arrivalTime;
+            }
+
+            int executeTime = Math.min(timeQuantum, pcb.remainingTime);
+            currentTime += executeTime;
+            pcb.remainingTime -= executeTime;
+
+            if (pcb.remainingTime > 0) {
+                queue.add(pcb);
+            } else {
+                int completionTime = currentTime;
+                int turnaroundTime = completionTime - pcb.arrivalTime;
+                int waitingTime = turnaroundTime - pcb.burstTime;
+
+                results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
+                        pcb.burstTime, waitingTime, turnaroundTime, completionTime));
+            }
+        }
+        return results;
+    }
+
     private static void styleActionButton(JButton btn, Color color) {
-        btn.setPreferredSize(new Dimension(230, 45));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 15));
         btn.setForeground(Color.WHITE);
         btn.setBackground(color);
         btn.setFocusPainted(false);
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
-            new EmptyBorder(8, 18, 8, 18)
-        ));
+                BorderFactory.createLineBorder(new Color(72, 219, 251), 2),
+                new EmptyBorder(8, 18, 8, 18)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
                 btn.setBackground(color.brighter());
             }
+
             public void mouseExited(MouseEvent e) {
                 btn.setBackground(color);
             }
         });
     }
 
-    // ==================== PROCESS CONTROL BLOCK ====================
+    // ==================== CLASSES ====================
     static class ProcessControlBlock {
         int pid;
         String processName;
         String state;
         String owner;
         int priority;
-        Integer parentPID;
-        List<Integer> childProcesses;
         int memoryRequirements;
         String allocatedMemory;
         String registerSaveArea;
@@ -971,16 +962,14 @@ subtitle.setOpaque(false);
         String ioState;
         int arrivalTime;
         int burstTime;
+        int remainingTime;
 
-        ProcessControlBlock(String name, int priority, 
-                           int memory, int burst, int arrival) {
+        ProcessControlBlock(String name, int priority, int memory, int burst, int arrival) {
             this.pid = generateRandomPID();
             this.processName = name;
             this.state = "Ready";
             this.owner = "System";
             this.priority = priority;
-            this.parentPID = null;
-            this.childProcesses = new ArrayList<>();
             this.memoryRequirements = memory;
             this.allocatedMemory = "0x" + Integer.toHexString(random.nextInt(0xFFFFFF) + 0x100000).toUpperCase();
             this.registerSaveArea = "REG_" + this.pid;
@@ -988,13 +977,14 @@ subtitle.setOpaque(false);
             this.ioState = "No I/O";
             this.arrivalTime = arrival;
             this.burstTime = burst;
+            this.remainingTime = burst;
         }
-        
+
         private int generateRandomPID() {
             int newPid;
             boolean exists;
             do {
-                newPid = 1000 + random.nextInt(9000); // Generate PID between 1000-9999
+                newPid = 1000 + random.nextInt(9000);
                 exists = false;
                 for (ProcessControlBlock pcb : processList) {
                     if (pcb.pid == newPid) {
@@ -1004,6 +994,27 @@ subtitle.setOpaque(false);
                 }
             } while (exists);
             return newPid;
+        }
+    }
+
+    static class ScheduleResult {
+        int pid;
+        String name;
+        int arrival;
+        int burst;
+        int waitingTime;
+        int turnaroundTime;
+        int completionTime;
+
+        ScheduleResult(int pid, String name, int arrival, int burst, int waitingTime,
+                       int turnaroundTime, int completionTime) {
+            this.pid = pid;
+            this.name = name;
+            this.arrival = arrival;
+            this.burst = burst;
+            this.waitingTime = waitingTime;
+            this.turnaroundTime = turnaroundTime;
+            this.completionTime = completionTime;
         }
     }
 }
