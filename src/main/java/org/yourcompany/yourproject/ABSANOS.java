@@ -50,9 +50,6 @@ public class ABSANOS {
     private static DefaultTableModel processTableModel;
     private static JTable processTable;
     private static Random random = new Random();
-    
-    // Kernel Configuration
-    private static int timeQuantum = 4;
 
     public static void main(String[] args) {
         try {
@@ -182,7 +179,10 @@ public class ABSANOS {
             button.addActionListener(e -> {
                 if (action.equals("Process")) {
                     openProcessManagement(frame);
-                } else {
+                }
+                else if (action.equals("Memory")) {
+                 MemoryManagement.openMemoryManagement(frame);
+                 } else {
                     JOptionPane.showMessageDialog(frame,
                             btn[0] + " module is under development", "ABSAN-OS",
                             JOptionPane.INFORMATION_MESSAGE);
@@ -271,6 +271,7 @@ public class ABSANOS {
                 {"Resume Process", "▶️"},
                 {"Block Process", "🚫"},
                 {"Wakeup Process", "⏰"},
+                {"Dispatch Process", "🚀"},
                 {"PCB", "📋"},
                 {"Scheduling", "📊"}
         };
@@ -291,7 +292,7 @@ public class ABSANOS {
 
         // Center panel - Process Table
         processTableModel = new DefaultTableModel(
-                new String[]{"PID", "Name", "Status", "Priority", "Memory", "Arrival", "Burst"}, 0) {
+                new String[]{"PID", "Name", "Status", "Priority", "Arrival", "Burst"}, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
                 return false;
@@ -301,12 +302,11 @@ public class ABSANOS {
         processTable = new JTable(processTableModel);
         processTable.setRowHeight(40);
         processTable.setFont(new Font("Consolas", Font.PLAIN, 13));
-        processTable.setBackground(new Color(30, 30, 30));  // Dark background
-        processTable.setForeground(Color.WHITE);            // White text
+        processTable.setBackground(new Color(30, 30, 30));
+        processTable.setForeground(Color.WHITE);
         processTable.setSelectionBackground(new Color(52, 152, 219));
         processTable.setSelectionForeground(Color.WHITE);
         processTable.setGridColor(new Color(60, 70, 80));
-        
 
         JTableHeader tableHeader = processTable.getTableHeader();
         tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -377,6 +377,9 @@ public class ABSANOS {
             case "Wakeup Process":
                 wakeupProcess(info);
                 break;
+            case "Dispatch Process":
+                dispatchProcess(info);
+                break;
             case "PCB":
                 showPCBDetails();
                 break;
@@ -410,13 +413,11 @@ public class ABSANOS {
         JComboBox<String> priorityBox = new JComboBox<>(new String[]{"1 (Highest)", "2", "3", "4", "5 (Lowest)"});
         priorityBox.setFont(new Font("Segoe UI", Font.PLAIN, 15));
 
-        JTextField memoryField = createStyledTextField("Memory Required (MB)");
         JTextField burstField = createStyledTextField("Burst Time");
         JTextField arrivalField = createStyledTextField("Arrival Time");
 
         addFormRow(main, "Process Name:", nameField);
         addFormRow(main, "Priority:", priorityBox);
-        addFormRow(main, "Memory (MB):", memoryField);
         addFormRow(main, "Burst Time:", burstField);
         addFormRow(main, "Arrival Time:", arrivalField);
 
@@ -432,7 +433,6 @@ public class ABSANOS {
             try {
                 String name = nameField.getText().trim();
                 int priority = priorityBox.getSelectedIndex() + 1;
-                int memory = Integer.parseInt(memoryField.getText().trim());
                 int burst = Integer.parseInt(burstField.getText().trim());
                 int arrival = Integer.parseInt(arrivalField.getText().trim());
 
@@ -440,7 +440,7 @@ public class ABSANOS {
                     throw new IllegalArgumentException("Process Name is required!");
                 }
 
-                ProcessControlBlock pcb = new ProcessControlBlock(name, priority, memory, burst, arrival);
+                ProcessControlBlock pcb = new ProcessControlBlock(name, priority, burst, arrival);
                 processList.add(pcb);
 
                 refreshProcessTable(info);
@@ -451,7 +451,7 @@ public class ABSANOS {
 
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(dialog,
-                        "❌ Please enter valid numbers for Memory, Burst Time, and Arrival Time!",
+                        "❌ Please enter valid numbers for Burst Time and Arrival Time!",
                         "Invalid Input", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(dialog,
@@ -504,7 +504,6 @@ public class ABSANOS {
                     pcb.processName,
                     pcb.state,
                     pcb.priority,
-                    pcb.memoryRequirements + " MB",
                     pcb.arrivalTime,
                     pcb.burstTime
             });
@@ -618,6 +617,50 @@ public class ABSANOS {
         }
     }
 
+    private static void dispatchProcess(JLabel info) {
+        int row = processTable.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(null, "⚠️ Please select a process first!",
+                    "Warning", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int pid = (int) processTableModel.getValueAt(row, 0);
+        ProcessControlBlock selectedPcb = null;
+
+        for (ProcessControlBlock pcb : processList) {
+            if (pcb.pid == pid) {
+                selectedPcb = pcb;
+                break;
+            }
+        }
+
+        if (selectedPcb != null) {
+            if (!selectedPcb.state.equals("Ready")) {
+                JOptionPane.showMessageDialog(null,
+                        "❌ Only Ready processes can be dispatched!",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Set all currently running processes to Ready
+            for (ProcessControlBlock pcb : processList) {
+                if (pcb.state.equals("Running")) {
+                    pcb.state = "Ready";
+                    pcb.cpuCore = -1;
+                }
+            }
+
+            // Dispatch selected process
+            selectedPcb.state = "Running";
+            selectedPcb.cpuCore = random.nextInt(4);
+
+            refreshProcessTable(info);
+            JOptionPane.showMessageDialog(null,
+                    "🚀 Process " + pid + " dispatched to CPU Core " + selectedPcb.cpuCore + "!");
+        }
+    }
+
     private static void showPCBDetails() {
         int row = processTable.getSelectedRow();
         if (row == -1) {
@@ -646,12 +689,10 @@ public class ABSANOS {
             details.append("Current State: ").append(pcb.state).append("\n");
             details.append("Owner: ").append(pcb.owner).append("\n");
             details.append("Priority: ").append(pcb.priority).append("\n");
-            details.append("Memory Requirements: ").append(pcb.memoryRequirements).append(" MB\n");
             details.append("Allocated Memory: ").append(pcb.allocatedMemory).append("\n");
             details.append("CPU Core: ").append(pcb.cpuCore >= 0 ? pcb.cpuCore : "Not Assigned").append("\n");
             details.append("Arrival Time: ").append(pcb.arrivalTime).append("\n");
             details.append("Burst Time: ").append(pcb.burstTime).append("\n");
-            details.append("Remaining Time: ").append(pcb.remainingTime).append("\n");
             details.append("Register Save Area: ").append(pcb.registerSaveArea).append("\n");
             details.append("I/O State: ").append(pcb.ioState).append("\n");
 
@@ -696,7 +737,7 @@ public class ABSANOS {
         main.setBorder(new EmptyBorder(25, 35, 25, 35));
         main.setOpaque(false);
 
-        JLabel title = new JLabel(" Select Scheduling Algorithm");
+        JLabel title = new JLabel("📊 Select Scheduling Algorithm");
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
         title.setForeground(new Color(72, 219, 251));
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -704,7 +745,8 @@ public class ABSANOS {
         main.add(title);
         main.add(Box.createRigidArea(new Dimension(0, 30)));
 
-        String[] algorithms = {"Round Robin", "FCFS", "SJF", "Priority Scheduling"};
+        String[] algorithms = {"Round Robin", "FCFS", "SJF (Non-Preemptive)", 
+                               "SJF (Preemptive)", "Priority Scheduling"};
 
         for (String algo : algorithms) {
             JButton btn = new JButton(algo);
@@ -716,8 +758,13 @@ public class ABSANOS {
             styleActionButton(btn, new Color(41, 128, 185));
 
             btn.addActionListener(e -> {
-                dialog.dispose();
-                showSchedulingResult(parent, algo, readyProcesses);
+                if (algo.equals("Round Robin")) {
+                    dialog.dispose();
+                    askTimeQuantum(parent, readyProcesses);
+                } else {
+                    dialog.dispose();
+                    showSchedulingResult(parent, algo, readyProcesses, 0);
+                }
             });
 
             main.add(btn);
@@ -728,7 +775,32 @@ public class ABSANOS {
         dialog.setVisible(true);
     }
 
-    private static void showSchedulingResult(JFrame parent, String algorithm, List<ProcessControlBlock> readyProcesses) {
+    private static void askTimeQuantum(JFrame parent, List<ProcessControlBlock> readyProcesses) {
+        String input = JOptionPane.showInputDialog(parent,
+                "Enter Time Quantum for Round Robin:",
+                "Time Quantum",
+                JOptionPane.QUESTION_MESSAGE);
+
+        if (input != null && !input.trim().isEmpty()) {
+            try {
+                int quantum = Integer.parseInt(input.trim());
+                if (quantum <= 0) {
+                    JOptionPane.showMessageDialog(parent,
+                            "❌ Time Quantum must be greater than 0!",
+                            "Invalid Input", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                showSchedulingResult(parent, "Round Robin", readyProcesses, quantum);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(parent,
+                        "❌ Please enter a valid number!",
+                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private static void showSchedulingResult(JFrame parent, String algorithm, 
+                                           List<ProcessControlBlock> readyProcesses, int quantum) {
         JFrame frame = new JFrame("ABSAN-OS - " + algorithm);
         frame.setSize(1200, 700);
         frame.setLocationRelativeTo(parent);
@@ -738,14 +810,19 @@ public class ABSANOS {
         header.setBackground(new Color(52, 152, 219));
         header.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel title = new JLabel("📊 " + algorithm.toUpperCase());
+        String headerText = algorithm.equals("Round Robin") ? 
+            algorithm.toUpperCase() + " (Quantum: " + quantum + ")" : 
+            algorithm.toUpperCase();
+        
+        JLabel title = new JLabel("📊 " + headerText);
         title.setFont(new Font("Segoe UI", Font.BOLD, 28));
         title.setForeground(Color.WHITE);
         header.add(title, BorderLayout.CENTER);
 
         // Create result table
         DefaultTableModel scheduleModel = new DefaultTableModel(
-                new String[]{"PID", "Name", "Arrival", "Burst", "Waiting Time", "Turnaround Time", "Completion Time"}, 0) {
+                new String[]{"PID", "Name", "Arrival", "Burst", "Waiting Time", 
+                            "Turnaround Time", "Completion Time"}, 0) {
             @Override
             public boolean isCellEditable(int row, int col) {
                 return false;
@@ -758,14 +835,17 @@ public class ABSANOS {
             case "FCFS":
                 results = scheduleFCFS(new ArrayList<>(readyProcesses));
                 break;
-            case "SJF":
-                results = scheduleSJF(new ArrayList<>(readyProcesses));
+            case "SJF (Non-Preemptive)":
+                results = scheduleSJFNonPreemptive(new ArrayList<>(readyProcesses));
+                break;
+            case "SJF (Preemptive)":
+                results = scheduleSJFPreemptive(new ArrayList<>(readyProcesses));
                 break;
             case "Priority Scheduling":
                 results = schedulePriority(new ArrayList<>(readyProcesses));
                 break;
             case "Round Robin":
-                results = scheduleRoundRobin(new ArrayList<>(readyProcesses));
+                results = scheduleRoundRobin(new ArrayList<>(readyProcesses), quantum);
                 break;
         }
 
@@ -850,68 +930,186 @@ public class ABSANOS {
         return results;
     }
 
-    // SJF Scheduling
-    private static List<ScheduleResult> scheduleSJF(List<ProcessControlBlock> processes) {
-        Collections.sort(processes, Comparator.comparingInt(p -> p.burstTime));
+    // SJF Non-Preemptive Scheduling
+    private static List<ScheduleResult> scheduleSJFNonPreemptive(List<ProcessControlBlock> processes) {
+        Collections.sort(processes, Comparator.comparingInt(p -> p.arrivalTime));
         List<ScheduleResult> results = new ArrayList<>();
+        boolean[] done = new boolean[processes.size()];
+        int completed = 0;
         int currentTime = 0;
 
-        for (ProcessControlBlock pcb : processes) {
-            if (currentTime < pcb.arrivalTime) {
-                currentTime = pcb.arrivalTime;
+        while (completed < processes.size()) {
+            int idx = -1;
+            int minBurst = Integer.MAX_VALUE;
+
+            for (int i = 0; i < processes.size(); i++) {
+                if (!done[i] && processes.get(i).arrivalTime <= currentTime 
+                    && processes.get(i).burstTime < minBurst) {
+                    minBurst = processes.get(i).burstTime;
+                    idx = i;
+                }
             }
-            int completionTime = currentTime + pcb.burstTime;
+
+            if (idx == -1) {
+                currentTime++;
+                continue;
+            }
+
+            ProcessControlBlock pcb = processes.get(idx);
+            currentTime += pcb.burstTime;
+            int completionTime = currentTime;
             int turnaroundTime = completionTime - pcb.arrivalTime;
             int waitingTime = turnaroundTime - pcb.burstTime;
 
             results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
                     pcb.burstTime, waitingTime, turnaroundTime, completionTime));
-            currentTime = completionTime;
+            done[idx] = true;
+            completed++;
         }
         return results;
     }
 
-    // Priority Scheduling
-    private static List<ScheduleResult> schedulePriority(List<ProcessControlBlock> processes) {
-        Collections.sort(processes, Comparator.comparingInt(p -> p.priority));
+    // SJF Preemptive Scheduling (SRTF)
+    private static List<ScheduleResult> scheduleSJFPreemptive(List<ProcessControlBlock> processes) {
+        List<ProcessControlBlock> processCopy = new ArrayList<>();
+        for (ProcessControlBlock pcb : processes) {
+            ProcessControlBlock copy = new ProcessControlBlock(pcb.processName, pcb.priority, 
+                                                               pcb.burstTime, pcb.arrivalTime);
+            copy.pid = pcb.pid;
+            copy.remainingTime = pcb.burstTime;
+            processCopy.add(copy);
+        }
+
         List<ScheduleResult> results = new ArrayList<>();
         int currentTime = 0;
+        int completed = 0;
+        int[] completionTimes = new int[processCopy.size()];
+        boolean[] done = new boolean[processCopy.size()];
 
-        for (ProcessControlBlock pcb : processes) {
-            if (currentTime < pcb.arrivalTime) {
-                currentTime = pcb.arrivalTime;
+        while (completed < processCopy.size()) {
+            int idx = -1;
+            int minRemaining = Integer.MAX_VALUE;
+
+            for (int i = 0; i < processCopy.size(); i++) {
+                if (!done[i] && processCopy.get(i).arrivalTime <= currentTime 
+                    && processCopy.get(i).remainingTime < minRemaining 
+                    && processCopy.get(i).remainingTime > 0) {
+                    minRemaining = processCopy.get(i).remainingTime;
+                    idx = i;
+                }
             }
-            int completionTime = currentTime + pcb.burstTime;
+
+            if (idx == -1) {
+                currentTime++;
+                continue;
+            }
+
+            processCopy.get(idx).remainingTime--;
+            currentTime++;
+
+            if (processCopy.get(idx).remainingTime == 0) {
+                done[idx] = true;
+                completed++;
+                completionTimes[idx] = currentTime;
+            }
+        }
+
+        for (int i = 0; i < processCopy.size(); i++) {
+            ProcessControlBlock pcb = processCopy.get(i);
+            int completionTime = completionTimes[i];
             int turnaroundTime = completionTime - pcb.arrivalTime;
             int waitingTime = turnaroundTime - pcb.burstTime;
 
             results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
                     pcb.burstTime, waitingTime, turnaroundTime, completionTime));
-            currentTime = completionTime;
+        }
+        return results;
+    }
+
+    // Priority Scheduling (Non-Preemptive)
+    private static List<ScheduleResult> schedulePriority(List<ProcessControlBlock> processes) {
+        Collections.sort(processes, Comparator.comparingInt(p -> p.arrivalTime));
+        List<ScheduleResult> results = new ArrayList<>();
+        boolean[] done = new boolean[processes.size()];
+        int completed = 0;
+        int currentTime = 0;
+
+        while (completed < processes.size()) {
+            int idx = -1;
+            int highestPriority = Integer.MAX_VALUE;
+
+            for (int i = 0; i < processes.size(); i++) {
+                if (!done[i] && processes.get(i).arrivalTime <= currentTime 
+                    && processes.get(i).priority < highestPriority) {
+                    highestPriority = processes.get(i).priority;
+                    idx = i;
+                }
+            }
+
+            if (idx == -1) {
+                currentTime++;
+                continue;
+            }
+
+            ProcessControlBlock pcb = processes.get(idx);
+            currentTime += pcb.burstTime;
+            int completionTime = currentTime;
+            int turnaroundTime = completionTime - pcb.arrivalTime;
+            int waitingTime = turnaroundTime - pcb.burstTime;
+
+            results.add(new ScheduleResult(pcb.pid, pcb.processName, pcb.arrivalTime,
+                    pcb.burstTime, waitingTime, turnaroundTime, completionTime));
+            done[idx] = true;
+            completed++;
         }
         return results;
     }
 
     // Round Robin Scheduling
-    private static List<ScheduleResult> scheduleRoundRobin(List<ProcessControlBlock> processes) {
-        List<ScheduleResult> results = new ArrayList<>();
-        List<ProcessControlBlock> queue = new ArrayList<>(processes);
-        int currentTime = 0;
-
-        for (ProcessControlBlock pcb : queue) {
-            pcb.remainingTime = pcb.burstTime;
+    private static List<ScheduleResult> scheduleRoundRobin(List<ProcessControlBlock> processes, int quantum) {
+        List<ProcessControlBlock> processCopy = new ArrayList<>();
+        for (ProcessControlBlock pcb : processes) {
+            ProcessControlBlock copy = new ProcessControlBlock(pcb.processName, pcb.priority, 
+                                                               pcb.burstTime, pcb.arrivalTime);
+            copy.pid = pcb.pid;
+            copy.remainingTime = pcb.burstTime;
+            processCopy.add(copy);
         }
 
-        while (!queue.isEmpty()) {
-            ProcessControlBlock pcb = queue.remove(0);
+        List<ScheduleResult> results = new ArrayList<>();
+        List<ProcessControlBlock> queue = new ArrayList<>();
+        int currentTime = 0;
+        int idx = 0;
+        boolean[] inQueue = new boolean[processCopy.size()];
 
-            if (currentTime < pcb.arrivalTime) {
-                currentTime = pcb.arrivalTime;
+        while (results.size() < processCopy.size()) {
+            // Add arrived processes to queue
+            for (int i = 0; i < processCopy.size(); i++) {
+                if (!inQueue[i] && processCopy.get(i).arrivalTime <= currentTime 
+                    && processCopy.get(i).remainingTime > 0) {
+                    queue.add(processCopy.get(i));
+                    inQueue[i] = true;
+                }
             }
 
-            int executeTime = Math.min(timeQuantum, pcb.remainingTime);
+            if (queue.isEmpty()) {
+                currentTime++;
+                continue;
+            }
+
+            ProcessControlBlock pcb = queue.remove(0);
+            int executeTime = Math.min(quantum, pcb.remainingTime);
             currentTime += executeTime;
             pcb.remainingTime -= executeTime;
+
+            // Add newly arrived processes
+            for (int i = 0; i < processCopy.size(); i++) {
+                if (!inQueue[i] && processCopy.get(i).arrivalTime <= currentTime 
+                    && processCopy.get(i).remainingTime > 0) {
+                    queue.add(processCopy.get(i));
+                    inQueue[i] = true;
+                }
+            }
 
             if (pcb.remainingTime > 0) {
                 queue.add(pcb);
@@ -955,7 +1153,6 @@ public class ABSANOS {
         String state;
         String owner;
         int priority;
-        int memoryRequirements;
         String allocatedMemory;
         String registerSaveArea;
         int cpuCore;
@@ -964,13 +1161,12 @@ public class ABSANOS {
         int burstTime;
         int remainingTime;
 
-        ProcessControlBlock(String name, int priority, int memory, int burst, int arrival) {
+        ProcessControlBlock(String name, int priority, int burst, int arrival) {
             this.pid = generateRandomPID();
             this.processName = name;
             this.state = "Ready";
             this.owner = "System";
             this.priority = priority;
-            this.memoryRequirements = memory;
             this.allocatedMemory = "0x" + Integer.toHexString(random.nextInt(0xFFFFFF) + 0x100000).toUpperCase();
             this.registerSaveArea = "REG_" + this.pid;
             this.cpuCore = -1;
