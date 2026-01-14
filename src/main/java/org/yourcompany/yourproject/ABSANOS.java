@@ -44,12 +44,17 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+
+
 
 public class ABSANOS {
     private static final List<ProcessControlBlock> processList = new ArrayList<>();
     private static DefaultTableModel processTableModel;
     private static JTable processTable;
     private static Random random = new Random();
+    private static BufferedImage backgroundImage;
 
     public static void main(String[] args) {
         try {
@@ -61,6 +66,13 @@ public class ABSANOS {
     }
 
     private static void createMainWindow() {
+        try {
+        backgroundImage = ImageIO.read(
+                ABSANOS.class.getResource("/images/pic1.jpg")
+             );
+            } catch (Exception e) {
+                     e.printStackTrace();
+            }
         JFrame frame = new JFrame("ABSAN-OS - Operating System Simulation");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(1920, 1080);
@@ -73,23 +85,14 @@ public class ABSANOS {
                 Graphics2D g2d = (Graphics2D) g.create();
                 g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-
-                int w = getWidth();
-                int h = getHeight();
-
-                Color top = new Color(60, 0, 120);
-                Color middle = new Color(120, 189, 255);
-                Color bottom = new Color(160, 80, 0);
-
-                GradientPaint gp1 = new GradientPaint(0, 0, top, 0, h * 0.5f, middle);
-                GradientPaint gp2 = new GradientPaint(0, h * 0.5f, middle, 0, h, bottom);
-
-                g2d.setPaint(gp1);
-                g2d.fillRect(0, 0, w, h / 2);
-
-                g2d.setPaint(gp2);
-                g2d.fillRect(0, h / 2, w, h / 2);
-
+                if (backgroundImage != null) {
+                 g2d.drawImage(
+                backgroundImage,
+                0, 0,
+                getWidth(), getHeight(),
+                this
+                );
+         }
                 g2d.dispose();
             }
         };
@@ -106,7 +109,7 @@ public class ABSANOS {
                 int w = getWidth();
                 int h = getHeight();
 
-                Color start = new Color(100, 200, 20);
+                Color start = new Color(150, 200, 20);
                 Color end = new Color(0, 120, 254);
 
                 GradientPaint gp = new GradientPaint(0, 0, start, w, h, end);
@@ -163,10 +166,10 @@ public class ABSANOS {
         gbc.fill = GridBagConstraints.BOTH;
 
         String[][] buttons = {
-                {"Process Management", "🖥️", "Process"},
-                {"Memory Management", "💾", "Memory"},
-                {"I/O Management", "⚡", "IO"},
-                {"Other Operations", "⚙️", "Other"}
+                {"Process Management","", "Process"},
+                {"Memory Management","", "Memory"},
+                {"I/O Management", "", "IO"},
+                {"Other Operations","", "Other"}
         };
 
         int col = 0;
@@ -208,8 +211,10 @@ public class ABSANOS {
         btn.setContentAreaFilled(false);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        Color base = new Color(0, 0, 0);
-        Color hover = new Color(52, 152, 219);
+        Color base  = new Color(20, 20, 20, 180);   
+        Color hover = new Color(72, 219, 251);      
+
+
 
         btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
             @Override
@@ -265,13 +270,13 @@ public class ABSANOS {
                 new EmptyBorder(20, 15, 20, 15)));
 
         String[][] operations = {
-                {"Create Process", "➕"},
+                 {"Create Process", "➕"},
                 {"Destroy Process", "❌"},
                 {"Suspend Process", "⏸️"},
                 {"Resume Process", "▶️"},
                 {"Block Process", "🚫"},
                 {"Wakeup Process", "⏰"},
-                {"Dispatch Process", "🚀"},
+                {"Dispatch Process", "▶️"},
                 {"PCB", "📋"},
                 {"Scheduling", "📊"}
         };
@@ -283,7 +288,7 @@ public class ABSANOS {
             btn.addActionListener(e -> handleProcessOperation(op[0], frame, info));
 
             leftPanel.add(btn);
-            leftPanel.add(Box.createRigidArea(new Dimension(0, 8)));
+            leftPanel.add(Box.createRigidArea(new Dimension(0, 6)));
         }
 
         JScrollPane leftScroll = new JScrollPane(leftPanel);
@@ -330,7 +335,7 @@ public class ABSANOS {
     }
 
     private static JButton createOperationButton(String text, String emoji) {
-        JButton btn = new JButton("<html>" + emoji + "  " + text + "</html>");
+        JButton btn = new JButton("<html>" + emoji + " " +text + "</html>");
         btn.setPreferredSize(new Dimension(220, 48));
         btn.setMaximumSize(new Dimension(220, 48));
         btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
@@ -346,7 +351,7 @@ public class ABSANOS {
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(30, 30, 30));
+                btn.setBackground(new Color(52, 152, 219));
             }
 
             public void mouseExited(MouseEvent e) {
@@ -360,7 +365,7 @@ public class ABSANOS {
     private static void handleProcessOperation(String action, JFrame frame, JLabel info) {
         switch (action) {
             case "Create Process":
-                openCreateProcessDialog(frame, info);
+                askProcessCountAndCreate(frame, info);
                 break;
             case "Destroy Process":
                 destroyProcess(info);
@@ -388,9 +393,39 @@ public class ABSANOS {
                 break;
         }
     }
+    private static void askProcessCountAndCreate(JFrame parent, JLabel info) {
 
-    private static void openCreateProcessDialog(JFrame parent, JLabel info) {
-        JDialog dialog = new JDialog(parent, "Create New Process", true);
+    String input = JOptionPane.showInputDialog(
+            parent,
+            "How many processes do you want to create?",
+            "Create Multiple Processes",
+            JOptionPane.QUESTION_MESSAGE
+    );
+
+    if (input == null) return; // cancel pressed
+
+    int count;
+    try {
+        count = Integer.parseInt(input.trim());
+        if (count <= 0) throw new NumberFormatException();
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(parent,
+                "❌ Please enter a valid positive number!",
+                "Invalid Input",
+                JOptionPane.ERROR_MESSAGE);
+        return;
+    }
+
+    // 🔁 LOOP to open dialog multiple times
+    for (int i = 1; i <= count; i++) {
+        openCreateProcessDialog(parent, info, i, count);
+    }
+}
+
+
+    private static void openCreateProcessDialog(JFrame parent, JLabel info, int current,
+        int total) {
+        JDialog dialog = new JDialog(parent,  "Create Process (" + current + " of " + total + ")", true);
         dialog.setSize(550, 550);
         dialog.setLocationRelativeTo(parent);
         dialog.getContentPane().setBackground(new Color(30, 39, 46));
