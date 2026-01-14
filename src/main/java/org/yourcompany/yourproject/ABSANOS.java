@@ -185,7 +185,10 @@ public class ABSANOS {
                 }
                 else if (action.equals("Memory")) {
                  MemoryManagement.openMemoryManagement(frame);
-                 } else {
+                 }
+                 else if (action.equals("IO")) {
+                 IOManagement.openIOManagement(frame);
+                } else {
                     JOptionPane.showMessageDialog(frame,
                             btn[0] + " module is under development", "ABSAN-OS",
                             JOptionPane.INFORMATION_MESSAGE);
