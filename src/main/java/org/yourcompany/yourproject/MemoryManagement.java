@@ -21,7 +21,6 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -38,7 +37,7 @@ import javax.swing.table.JTableHeader;
 
 public class MemoryManagement {
     
-    private static int pageSize = 4096; // Default 4KB
+    private static int pageSize = 128; // Default page size
     private static final String CONFIG_FILE = "memory_config.txt";
     
     public static void openMemoryManagement(JFrame parent) {
@@ -105,7 +104,7 @@ public class MemoryManagement {
         JLabel welcomeText = new JLabel("<html><div style='text-align: center;'>" +
                 "<h1 style='color: #9B59B6;'>Memory Management System</h1>" +
                 "<p style='color: white; font-size: 16px;'>Select an operation from the left menu</p>" +
-                "<br><p style='color: #ECF0F1;'>• Paging with configurable page size</p>" +
+                "<br><p style='color: #ECF0F1;'>• Paging with manual frame assignment</p>" +
                 "<p style='color: #ECF0F1;'>• Memory allocation algorithms</p>" +
                 "<p style='color: #ECF0F1;'>• LRU page replacement</p>" +
                 "</div></html>");
@@ -154,16 +153,16 @@ public class MemoryManagement {
                 openPagingDialog(frame);
                 break;
             case "First Fit":
-                openMemoryAllocation(frame, "First Fit");
+                showAllocationResult(frame, "First Fit");
                 break;
             case "Best Fit":
-                openMemoryAllocation(frame, "Best Fit");
+                showAllocationResult(frame, "Best Fit");
                 break;
             case "Next Fit":
-                openMemoryAllocation(frame, "Next Fit");
+                showAllocationResult(frame, "Next Fit");
                 break;
             case "Worst Fit":
-                openMemoryAllocation(frame, "Worst Fit");
+                showAllocationResult(frame, "Worst Fit");
                 break;
             case "LRU Page Replacement":
                 openLRUDialog(frame);
@@ -177,7 +176,7 @@ public class MemoryManagement {
     // ==================== PAGING ====================
     private static void openPagingDialog(JFrame parent) {
         JDialog dialog = new JDialog(parent, "Paging System", true);
-        dialog.setSize(600, 650);
+        dialog.setSize(600, 550);
         dialog.setLocationRelativeTo(parent);
         dialog.getContentPane().setBackground(new Color(30, 39, 46));
 
@@ -194,19 +193,17 @@ public class MemoryManagement {
         main.add(title);
         main.add(Box.createRigidArea(new Dimension(0, 25)));
 
-        JTextField logicalField = createStyledTextField("Logical Memory (bytes)");
-        JTextField physicalField = createStyledTextField("Physical Memory (bytes)");
-        JLabel pageSizeLabel = new JLabel("Page Size: " + pageSize + " bytes");
-        pageSizeLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        pageSizeLabel.setForeground(Color.WHITE);
-        pageSizeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        JTextField logicalField = createStyledTextField("");
+        JTextField physicalField = createStyledTextField("");
+        JTextField pageSizeField = createStyledTextField("");
 
-        addFormRow(main, "Logical Memory:", logicalField);
-        addFormRow(main, "Physical Memory:", physicalField);
-        main.add(pageSizeLabel);
+        addFormRow(main, "Logical Memory (bytes):", logicalField);
+        addFormRow(main, "Physical Memory (bytes):", physicalField);
+        addFormRow(main, "Page Size (bytes):", pageSizeField);
+
         main.add(Box.createRigidArea(new Dimension(0, 20)));
 
-        JButton calculateBtn = new JButton("Calculate Paging");
+        JButton calculateBtn = new JButton("Next");
         styleActionButton(calculateBtn, new Color(142, 68, 173));
         calculateBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -214,12 +211,13 @@ public class MemoryManagement {
             try {
                 int logSize = Integer.parseInt(logicalField.getText().trim());
                 int phySize = Integer.parseInt(physicalField.getText().trim());
+                int pSize = Integer.parseInt(pageSizeField.getText().trim());
 
-                int pages = logSize / pageSize;
-                int frames = phySize / pageSize;
+                int pages = logSize / pSize;
+                int frames = phySize / pSize;
 
                 dialog.dispose();
-                showPageTableDialog(parent, pages, frames);
+                enterPageTable(parent, pages, frames, pSize);
 
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(dialog,
@@ -233,8 +231,8 @@ public class MemoryManagement {
         dialog.setVisible(true);
     }
 
-    private static void showPageTableDialog(JFrame parent, int pages, int frames) {
-        JDialog dialog = new JDialog(parent, "Page Table Configuration", true);
+    private static void enterPageTable(JFrame parent, int pages, int frames, int pSize) {
+        JDialog dialog = new JDialog(parent, "Enter Page Table", true);
         dialog.setSize(700, 600);
         dialog.setLocationRelativeTo(parent);
         dialog.getContentPane().setBackground(new Color(30, 39, 46));
@@ -245,19 +243,95 @@ public class MemoryManagement {
 
         JLabel info = new JLabel(String.format(
                 "<html><div style='text-align: center;'>" +
-                        "<p style='color: #9B59B6; font-size: 18px;'><b>Pages: %d | Frames: %d | Page Size: %d bytes</b></p>" +
-                        "</div></html>", pages, frames, pageSize));
+                        "<p style='color: #9B59B6; font-size: 18px;'><b>Number of Pages: %d | Number of Frames: %d</b></p>" +
+                        "<p style='color: white;'>Enter frame number for each page (or -1 for not in memory)</p>" +
+                        "</div></html>", pages, frames));
         info.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // Create input panel for page table
+        JPanel inputPanel = new JPanel();
+        inputPanel.setLayout(new BoxLayout(inputPanel, BoxLayout.Y_AXIS));
+        inputPanel.setOpaque(false);
+
+        JTextField[] frameFields = new JTextField[pages];
+        for (int i = 0; i < pages; i++) {
+            JPanel row = new JPanel(new BorderLayout(10, 0));
+            row.setOpaque(false);
+            row.setMaximumSize(new Dimension(400, 40));
+
+            JLabel lbl = new JLabel("Page " + i + " maps to frame:");
+            lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+            lbl.setForeground(Color.WHITE);
+            lbl.setPreferredSize(new Dimension(180, 30));
+
+            frameFields[i] = createStyledTextField("");
+            frameFields[i].setPreferredSize(new Dimension(100, 30));
+
+            row.add(lbl, BorderLayout.WEST);
+            row.add(frameFields[i], BorderLayout.CENTER);
+
+            inputPanel.add(row);
+            inputPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        }
+
+        JScrollPane scroll = new JScrollPane(inputPanel);
+        scroll.setBorder(BorderFactory.createLineBorder(new Color(155, 89, 182), 2));
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+
+        JButton submitBtn = new JButton("Submit Page Table");
+        styleActionButton(submitBtn, new Color(142, 68, 173));
+
+        submitBtn.addActionListener(e -> {
+            try {
+                int[] pageTable = new int[pages];
+                for (int i = 0; i < pages; i++) {
+                    pageTable[i] = Integer.parseInt(frameFields[i].getText().trim());
+                }
+
+                dialog.dispose();
+                showPageTableResult(parent, pages, frames, pSize, pageTable);
+
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(dialog,
+                        "❌ Please enter valid frame numbers!",
+                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        main.add(info, BorderLayout.NORTH);
+        main.add(scroll, BorderLayout.CENTER);
+        main.add(submitBtn, BorderLayout.SOUTH);
+
+        dialog.add(main);
+        dialog.setVisible(true);
+    }
+
+    private static void showPageTableResult(JFrame parent, int pages, int frames, int pSize, int[] pageTable) {
+        JFrame frame = new JFrame("ABSAN-OS - Page Table");
+        frame.setSize(900, 600);
+        frame.setLocationRelativeTo(parent);
+        frame.getContentPane().setBackground(new Color(20, 25, 35));
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(new Color(142, 68, 173));
+        header.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel title = new JLabel(String.format("Page Table - Pages: %d | Frames: %d | Page Size: %d bytes",
+                pages, frames, pSize));
+        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        title.setForeground(Color.WHITE);
+        header.add(title, BorderLayout.CENTER);
 
         // Page Table
         DefaultTableModel model = new DefaultTableModel(
                 new String[]{"Page Number", "Frame Number"}, 0);
 
-        int[] pageTable = new int[pages];
         for (int i = 0; i < pages; i++) {
-            int frame = (i < frames) ? i : -1;
-            pageTable[i] = frame;
-            model.addRow(new Object[]{i, frame == -1 ? "Not in Memory" : frame});
+            model.addRow(new Object[]{
+                    "Page " + i,
+                    pageTable[i] == -1 ? "Not in Memory" : "Frame " + pageTable[i]
+            });
         }
 
         JTable table = createStyledTable(model);
@@ -268,7 +342,7 @@ public class MemoryManagement {
         styleActionButton(translateBtn, new Color(142, 68, 173));
 
         translateBtn.addActionListener(e -> {
-            String input = JOptionPane.showInputDialog(dialog,
+            String input = JOptionPane.showInputDialog(frame,
                     "Enter Logical Address:",
                     "Address Translation",
                     JOptionPane.QUESTION_MESSAGE);
@@ -276,11 +350,11 @@ public class MemoryManagement {
             if (input != null && !input.trim().isEmpty()) {
                 try {
                     int logAddr = Integer.parseInt(input.trim());
-                    int pageNo = logAddr / pageSize;
-                    int offset = logAddr % pageSize;
+                    int pageNo = logAddr / pSize;
+                    int offset = logAddr % pSize;
 
                     if (pageNo >= pages) {
-                        JOptionPane.showMessageDialog(dialog,
+                        JOptionPane.showMessageDialog(frame,
                                 "❌ Error: Logical address too large!",
                                 "Error", JOptionPane.ERROR_MESSAGE);
                         return;
@@ -289,102 +363,66 @@ public class MemoryManagement {
                     int frameNo = pageTable[pageNo];
 
                     if (frameNo == -1) {
-                        JOptionPane.showMessageDialog(dialog,
+                        JOptionPane.showMessageDialog(frame,
                                 String.format("⚠️ Page Fault!\nPage %d is not in memory.", pageNo),
                                 "Page Fault", JOptionPane.WARNING_MESSAGE);
                     } else {
-                        int phyAddr = frameNo * pageSize + offset;
-                        JOptionPane.showMessageDialog(dialog,
-                                String.format("<html><b>Address Translation:</b><br><br>" +
-                                                "Logical Address: %d<br>" +
-                                                "Page Number: %d<br>" +
-                                                "Offset: %d<br>" +
-                                                "Frame Number: %d<br>" +
-                                                "<b>Physical Address: %d</b></html>",
-                                        logAddr, pageNo, offset, frameNo, phyAddr),
+                        int phyAddr = frameNo * pSize + offset;
+                        JOptionPane.showMessageDialog(frame,
+                                String.format("<html><div style='font-family: Consolas; font-size: 14px;'>" +
+                                                "<b style='color: #9B59B6;'>Address Translation Result:</b><br><br>" +
+                                                "Logical Address %d → Page %d, Offset %d<br>" +
+                                                "→ Physical Address = (Frame %d × %d + %d) = <b style='color: #27AE60;'>%d</b>" +
+                                                "</div></html>",
+                                        logAddr, pageNo, offset, frameNo, pSize, offset, phyAddr),
                                 "Translation Result", JOptionPane.INFORMATION_MESSAGE);
                     }
                 } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(dialog,
+                    JOptionPane.showMessageDialog(frame,
                             "❌ Please enter a valid number!",
                             "Invalid Input", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
 
-        main.add(info, BorderLayout.NORTH);
-        main.add(scroll, BorderLayout.CENTER);
-        main.add(translateBtn, BorderLayout.SOUTH);
+        frame.setLayout(new BorderLayout(10, 10));
+        frame.add(header, BorderLayout.NORTH);
+        frame.add(scroll, BorderLayout.CENTER);
+        frame.add(translateBtn, BorderLayout.SOUTH);
 
-        dialog.add(main);
-        dialog.setVisible(true);
+        frame.setVisible(true);
     }
+
+    private static int[] parseInputArray(String input) {
+    String[] parts = input.split(",");
+    int[] arr = new int[parts.length];
+    for (int i = 0; i < parts.length; i++) {
+        arr[i] = Integer.parseInt(parts[i].trim());
+    }
+    return arr;
+}
+
 
     // ==================== MEMORY ALLOCATION ====================
-    private static void openMemoryAllocation(JFrame parent, String algorithm) {
-        JDialog dialog = new JDialog(parent, algorithm + " Algorithm", true);
-        dialog.setSize(650, 550);
-        dialog.setLocationRelativeTo(parent);
-        dialog.getContentPane().setBackground(new Color(0, 0, 0));
+    private static void showAllocationResult(JFrame parent, String algorithm) {
+    try {
+        String blockInput = JOptionPane.showInputDialog(parent,
+                "Enter Memory Blocks (comma separated)\nExample: 100,200,500,300,600",
+                "Memory Blocks Input",
+                JOptionPane.QUESTION_MESSAGE);
 
+        if (blockInput == null) return;
 
-        JPanel main = new JPanel();
-        main.setLayout(new BoxLayout(main, BoxLayout.Y_AXIS));
-        main.setBorder(new EmptyBorder(25, 35, 25, 35));
-        main.setOpaque(false);
+        String processInput = JOptionPane.showInputDialog(parent,
+                "Enter Process Sizes (comma separated)\nExample: 212,417,112,426",
+                "Process Input",
+                JOptionPane.QUESTION_MESSAGE);
 
-        JLabel title = new JLabel(algorithm);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        title.setForeground(new Color(155, 89, 182));
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        if (processInput == null) return;
 
-        main.add(title);
-        main.add(Box.createRigidArea(new Dimension(0, 25)));
+        int[] blocks = parseInputArray(blockInput);
+        int[] processes = parseInputArray(processInput);
 
-        JTextField blocksField = createStyledTextField("Block Sizes (comma-separated)");
-        JTextField processesField = createStyledTextField("Process Sizes (comma-separated)");
-
-        addFormRow(main, "Memory Blocks:", blocksField);
-        addFormRow(main, "Process Sizes:", processesField);
-
-        main.add(Box.createRigidArea(new Dimension(0, 20)));
-
-        JButton allocateBtn = new JButton("Allocate Memory");
-        styleActionButton(allocateBtn, new Color(142, 68, 173));
-        allocateBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        allocateBtn.addActionListener(e -> {
-            try {
-                String[] blockStr = blocksField.getText().trim().split(",");
-                String[] processStr = processesField.getText().trim().split(",");
-
-                int[] blocks = new int[blockStr.length];
-                int[] processes = new int[processStr.length];
-
-                for (int i = 0; i < blockStr.length; i++) {
-                    blocks[i] = Integer.parseInt(blockStr[i].trim());
-                }
-                for (int i = 0; i < processStr.length; i++) {
-                    processes[i] = Integer.parseInt(processStr[i].trim());
-                }
-
-                dialog.dispose();
-                showAllocationResult(parent, algorithm, blocks, processes);
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog,
-                        "❌ Please enter valid comma-separated numbers!",
-                        "Invalid Input", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        main.add(allocateBtn);
-        dialog.add(main);
-        dialog.setVisible(true);
-    }
-
-    private static void showAllocationResult(JFrame parent, String algorithm,
-                                           int[] blocks, int[] processes) {
         int[] allocation = null;
 
         switch (algorithm) {
@@ -402,8 +440,8 @@ public class MemoryManagement {
                 break;
         }
 
-        JFrame frame = new JFrame("ABSAN-OS - " + algorithm + " Result");
-        frame.setSize(1000, 600);
+        JFrame frame = new JFrame("ABSAN-OS - " + algorithm);
+        frame.setSize(1100, 600);
         frame.setLocationRelativeTo(parent);
         frame.getContentPane().setBackground(new Color(20, 25, 35));
 
@@ -417,8 +455,8 @@ public class MemoryManagement {
         header.add(title, BorderLayout.CENTER);
 
         DefaultTableModel model = new DefaultTableModel(
-                new String[]{"Process No", "Process Size", "Allocated Block", 
-                            "Original Block Size", "Internal Fragmentation"}, 0);
+                new String[]{"Process No", "Process Size", "Allocated Block",
+                        "Original Block Size", "Internal Fragmentation"}, 0);
 
         for (int i = 0; i < processes.length; i++) {
             if (allocation[i] != -1) {
@@ -440,9 +478,15 @@ public class MemoryManagement {
         frame.add(scroll, BorderLayout.CENTER);
 
         frame.setVisible(true);
+        } catch (Exception ex) {
+        JOptionPane.showMessageDialog(parent,
+                "❌ Invalid input! Please enter numbers separated by commas.",
+                "Input Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
     }
 
-    // Allocation Algorithms
+    // Allocation Algorithms (Exactly as C++ code)
     private static int[] firstFit(int[] blocks, int[] processes) {
         int[] allocation = new int[processes.length];
         int[] remaining = blocks.clone();
@@ -550,11 +594,11 @@ public class MemoryManagement {
         main.add(title);
         main.add(Box.createRigidArea(new Dimension(0, 25)));
 
-        JTextField framesField = createStyledTextField("Number of Frames");
-        JTextField pagesField = createStyledTextField("Page Reference String (comma-separated)");
+        JTextField framesField = createStyledTextField("");
+        JTextField pagesField = createStyledTextField("");
 
-        addFormRow(main, "Frames:", framesField);
-        addFormRow(main, "Pages:", pagesField);
+        addFormRow(main, "Number of Frames:", framesField);
+        addFormRow(main, "Page String (comma):", pagesField);
 
         main.add(Box.createRigidArea(new Dimension(0, 20)));
 
@@ -612,7 +656,7 @@ public class MemoryManagement {
         }
 
         JFrame frame = new JFrame("ABSAN-OS - LRU Result");
-        frame.setSize(800, 600);
+        frame.setSize(900, 600);
         frame.setLocationRelativeTo(parent);
         frame.getContentPane().setBackground(new Color(20, 25, 35));
 
@@ -682,7 +726,7 @@ public class MemoryManagement {
                 reader.close();
             }
         } catch (Exception e) {
-            pageSize = 4096; // Default
+            pageSize = 128; // Default
         }
     }
 
@@ -717,7 +761,7 @@ public class MemoryManagement {
         JLabel lbl = new JLabel(label);
         lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lbl.setForeground(Color.WHITE);
-        lbl.setPreferredSize(new Dimension(150, 30));
+        lbl.setPreferredSize(new Dimension(180, 30));
 
         row.add(lbl, BorderLayout.WEST);
         row.add(component, BorderLayout.CENTER);
@@ -754,7 +798,6 @@ public class MemoryManagement {
         JTable table = new JTable(model);
         table.setRowHeight(40);
         table.setFont(new Font("Consolas", Font.PLAIN, 14));
-        table.setOpaque(false);
         table.setBackground(new Color(35, 43, 53));
         table.setForeground(Color.WHITE);
         table.setGridColor(new Color(60, 70, 80));
@@ -763,10 +806,10 @@ public class MemoryManagement {
 
         JTableHeader header = table.getTableHeader();
         header.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        header.setOpaque(false);
         header.setBackground(new Color(142, 68, 173));
         header.setForeground(Color.WHITE);
         header.setPreferredSize(new Dimension(100, 45));
+        header.setOpaque(false);
 
         return table;
     }
