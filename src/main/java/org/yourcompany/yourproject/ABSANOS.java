@@ -168,8 +168,8 @@ public class ABSANOS {
         String[][] buttons = {
                 {"Process Management","", "Process"},
                 {"Memory Management","", "Memory"},
-                {"I/O Management", "", "IO"},
-                {"Other Operations","", "Other"}
+                {"Synchronization", "", "IO"},
+                {"I/O Management","", "Other"}
         };
 
         int col = 0;
@@ -180,7 +180,7 @@ public class ABSANOS {
 
             String action = btn[2];
             button.addActionListener(e -> {
-                if (action.equals("Process")) {
+                if(action.equals("Process")) {
                     openProcessManagement(frame);
                 }
                 else if (action.equals("Memory")) {
@@ -188,11 +188,9 @@ public class ABSANOS {
                  }
                  else if (action.equals("IO")) {
                  IOManagement.openIOManagement(frame);
-                } else {
-                    JOptionPane.showMessageDialog(frame,
-                            btn[0] + " module is under development", "ABSAN-OS",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
+                }else if (action.equals("Other")) {
+                   new IOSimulationGUI().setVisible(true);
+            }
             });
             buttonPanel.add(button, gbc);
         }

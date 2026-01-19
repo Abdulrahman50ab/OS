@@ -15,7 +15,7 @@ public class IOManagement {
 
     public static void openIOManagement(JFrame parent) {
 
-        JFrame frame = new JFrame("ABSAN-OS • I/O Management & Synchronization");
+        JFrame frame = new JFrame("ABSAN-OS • IPC & Synchronization");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(1280, 820);
         frame.setMinimumSize(new Dimension(980, 680));
